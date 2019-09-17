@@ -1,0 +1,3 @@
+---
+header-includes: <script type="text/javascript" src="http://livejs.com/live.js"></script>
+---
