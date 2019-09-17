@@ -57,4 +57,4 @@ To use watch you have install additional applications:
 
 In `examples` directory there is an index.html page generated from this `README.md` file:
 
- * [index.html](examples/index.html)
+ * [index.html](http://htmlpreview.github.io/?https://github.com/onjin/simple-static-generator/blob/master/examples/index.html)
