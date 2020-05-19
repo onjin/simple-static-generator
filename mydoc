@@ -1,0 +1,124 @@
+#!/bin/bash
+set -o errexit
+set -o pipefail
+set -o nounset
+# set -o xtrace
+
+# Set magic variables for current file & dir
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+__file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
+__base="$(basename ${__file} .sh)"
+__root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
+
+### Allow to override default configuration through .env file
+[ -f .env ] && . .env
+
+### Configuration
+TITLE="${TITLE:-Simple Document}"
+TOC_DEPTH=${TOC_DEPTH:-2}
+HIGHLIGHT_STYLE=${HIGHLIGHT_STYLE:-zenburn}
+INPUT_FORMAT=${INPUT_FORMAT:-markdown-smart}
+CSS_FILE=${CSS_FILE:-style.css}
+OUTPUT_FORMAT=${OUTPUT_FORMAT:-html5}
+OUTPUT_DIR=${OUTPUT_DIR:-output}
+OUTPUT_PATH=${OUTPUT_PATH:-${OUTPUT_DIR}/index.html}
+PANDOC_OPTS=${PANDOC_OPTS:-}
+INCLUDES=${INCLUDES:-}
+SERVE_PORT=${SERVE_PORT:-8000}
+SERVE_PATH=${SERVE_PATH:-${OUTPUT_DIR}}
+
+### Internals
+PROGRAM_NAME=${0}
+CMD=${1:-help}
+VERSION=1.0.0
+
+function show_usage() {
+  echo "${PROGRAM_NAME} ${VERSION}"
+  echo
+  echo "Commands"
+  echo
+  echo "  build - build output from markdown files"
+  echo "  watch - watch current dir and rebuild on changes (requires inotifywait)"
+  echo "  serve - serve current directory at port :8000 (requires python3)"
+}
+
+function build() {
+  INPUT=${@}
+
+  info  "==> Building ${OUTPUT_PATH} in ${OUTPUT_FORMAT} format from ${INPUT}"
+  mkdir -p ${OUTPUT_DIR}
+  pandoc -s \
+      --metadata title="${TITLE}" \
+      --from=${INPUT_FORMAT} \
+      --to=${OUTPUT_FORMAT} \
+      --output ${OUTPUT_PATH} \
+      --toc \
+      --toc-depth ${TOC_DEPTH} \
+      --css ${CSS_FILE} \
+      --highlight-style=${HIGHLIGHT_STYLE} \
+      --self-contained \
+      ${PANDOC_OPTS} \
+      ${INCLUDES} \
+      ${INPUT}
+}
+
+# colors {{{
+C_RST="\e[0m"
+C_RED="\e[31m"
+C_GREEN="\e[32m"
+C_YELLOW="\e[32m"
+# colors }}}
+
+function error() {
+    MSG=${1}
+    echo -e "${C_RED}ERROR:${C_RST} ${MSG}"
+}
+
+function info() {
+    MSG=${1}
+    echo -e "${C_GREEN}INFO:${C_RST} ${MSG}"
+}
+
+case ${CMD} in
+  help)
+    show_usage
+    exit 0
+    ;;
+  serve|s)
+    info "Serving from ${SERVE_PATH}"
+    cd ${SERVE_PATH} && python3 -m http.server ${SERVE_PORT}
+    exit 0
+    ;;
+  build|b)
+    [ -z $(command -v pandoc) ] && error "install 'pandoc' to use this command" && exit 1
+    [ -z ${2:-} ] && error "specify input documents f.i. content/*.md" && exit 1
+    build "${@:2}"
+    exit 0
+    ;;
+  watch|w)
+    [ -z $(command -v pandoc) ] && error "install 'pandoc' to use this command" && exit 1
+    [ -z $(command -v inotifywait) ] && error "install 'inotifywait' to use this command" && exit 1
+    INCLUDES="livejs.md ${INCLUDES}"
+
+    [ -z ${2:-} ] && error "specify input documents f.i. content/*.md" && exit 1
+    info "Watching current directory for changes"
+    while true; do
+      build "${@:2}"
+      inotifywait -qre close_write .; \
+      sleep 1; \
+    done
+    exit 0
+    ;;
+   examples)
+    [ -z $(command -v pandoc) ] && error "install 'pandoc' to use this command" && exit 1
+    OUTPUT_PATH=examples/index.html ./mydoc build README.md AUTHORS.md LICENSE
+    TOC_DEPTH=3 OUTPUT_FORMAT=pdf OUTPUT_PATH=examples/index.pdf PANDOC_OPTS="-t latex" ./mydoc build README.md AUTHORS.md LICENSE
+    OUTPUT_FORMAT=ipynb OUTPUT_PATH=examples/index.ipynb ./mydoc build README.md AUTHORS.md LICENSE
+    exit 0
+    ;;
+  *)
+    error "Unknown command ${CMD}"
+    exit 0
+    ;;
+
+esac

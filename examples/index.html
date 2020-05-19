@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Simple Document</title>
+  <title>MyDoc</title>
   <style>
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
@@ -561,243 +561,10 @@ border-color: #4078c0;
   <!--[if lt IE 9]>
     <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
   <![endif]-->
-  <script type="text/javascript"> /*
-  Live.js - One script closer to Designing in the Browser
-  Written for Handcraft.com by Martin Kool (@mrtnkl).
-
-  Version 4.
-  Recent change: Made stylesheet and mimetype checks case insensitive.
-
-  http://livejs.com
-  http://livejs.com/license (MIT)  
-  @livejs
-
-  Include live.js#css to monitor css changes only.
-  Include live.js#js to monitor js changes only.
-  Include live.js#html to monitor html changes only.
-  Mix and match to monitor a preferred combination such as live.js#html,css  
-
-  By default, just include live.js to monitor all css, js and html changes.
-  
-  Live.js can also be loaded as a bookmarklet. It is best to only use it for CSS then,
-  as a page reload due to a change in html or css would not re-include the bookmarklet.
-  To monitor CSS and be notified that it has loaded, include it as: live.js#css,notify
-*/
-(function () {
-
-  var headers = { "Etag": 1, "Last-Modified": 1, "Content-Length": 1, "Content-Type": 1 },
-      resources = {},
-      pendingRequests = {},
-      currentLinkElements = {},
-      oldLinkElements = {},
-      interval = 1000,
-      loaded = false,
-      active = { "html": 1, "css": 1, "js": 1 };
-
-  var Live = {
-
-    // performs a cycle per interval
-    heartbeat: function () {      
-      if (document.body) {        
-        // make sure all resources are loaded on first activation
-        if (!loaded) Live.loadresources();
-        Live.checkForChanges();
-      }
-      setTimeout(Live.heartbeat, interval);
-    },
-
-    // loads all local css and js resources upon first activation
-    loadresources: function () {
-
-      // helper method to assert if a given url is local
-      function isLocal(url) {
-        var loc = document.location,
-            reg = new RegExp("^\\.|^\/(?!\/)|^[\\w]((?!://).)*$|" + loc.protocol + "//" + loc.host);
-        return url.match(reg);
-      }
-
-      // gather all resources
-      var scripts = document.getElementsByTagName("script"),
-          links = document.getElementsByTagName("link"),
-          uris = [];
-
-      // track local js urls
-      for (var i = 0; i < scripts.length; i++) {
-        var script = scripts[i], src = script.getAttribute("src");
-        if (src && isLocal(src))
-          uris.push(src);
-        if (src && src.match(/\blive.js#/)) {
-          for (var type in active)
-            active[type] = src.match("[#,|]" + type) != null
-          if (src.match("notify")) 
-            alert("Live.js is loaded.");
-        }
-      }
-      if (!active.js) uris = [];
-      if (active.html) uris.push(document.location.href);
-
-      // track local css urls
-      for (var i = 0; i < links.length && active.css; i++) {
-        var link = links[i], rel = link.getAttribute("rel"), href = link.getAttribute("href", 2);
-        if (href && rel && rel.match(new RegExp("stylesheet", "i")) && isLocal(href)) {
-          uris.push(href);
-          currentLinkElements[href] = link;
-        }
-      }
-
-      // initialize the resources info
-      for (var i = 0; i < uris.length; i++) {
-        var url = uris[i];
-        Live.getHead(url, function (url, info) {
-          resources[url] = info;
-        });
-      }
-
-      // add rule for morphing between old and new css files
-      var head = document.getElementsByTagName("head")[0],
-          style = document.createElement("style"),
-          rule = "transition: all .3s ease-out;"
-      css = [".livejs-loading * { ", rule, " -webkit-", rule, "-moz-", rule, "-o-", rule, "}"].join('');
-      style.setAttribute("type", "text/css");
-      head.appendChild(style);
-      style.styleSheet ? style.styleSheet.cssText = css : style.appendChild(document.createTextNode(css));
-
-      // yep
-      loaded = true;
-    },
-
-    // check all tracking resources for changes
-    checkForChanges: function () {
-      for (var url in resources) {
-        if (pendingRequests[url])
-          continue;
-
-        Live.getHead(url, function (url, newInfo) {
-          var oldInfo = resources[url],
-              hasChanged = false;
-          resources[url] = newInfo;
-          for (var header in oldInfo) {
-            // do verification based on the header type
-            var oldValue = oldInfo[header],
-                newValue = newInfo[header],
-                contentType = newInfo["Content-Type"];
-            switch (header.toLowerCase()) {
-              case "etag":
-                if (!newValue) break;
-                // fall through to default
-              default:
-                hasChanged = oldValue != newValue;
-                break;
-            }
-            // if changed, act
-            if (hasChanged) {
-              Live.refreshResource(url, contentType);
-              break;
-            }
-          }
-        });
-      }
-    },
-
-    // act upon a changed url of certain content type
-    refreshResource: function (url, type) {
-      switch (type.toLowerCase()) {
-        // css files can be reloaded dynamically by replacing the link element                               
-        case "text/css":
-          var link = currentLinkElements[url],
-              html = document.body.parentNode,
-              head = link.parentNode,
-              next = link.nextSibling,
-              newLink = document.createElement("link");
-
-          html.className = html.className.replace(/\s*livejs\-loading/gi, '') + ' livejs-loading';
-          newLink.setAttribute("type", "text/css");
-          newLink.setAttribute("rel", "stylesheet");
-          newLink.setAttribute("href", url + "?now=" + new Date() * 1);
-          next ? head.insertBefore(newLink, next) : head.appendChild(newLink);
-          currentLinkElements[url] = newLink;
-          oldLinkElements[url] = link;
-
-          // schedule removal of the old link
-          Live.removeoldLinkElements();
-          break;
-
-        // check if an html resource is our current url, then reload                               
-        case "text/html":
-          if (url != document.location.href)
-            return;
-
-          // local javascript changes cause a reload as well
-        case "text/javascript":
-        case "application/javascript":
-        case "application/x-javascript":
-          document.location.reload();
-      }
-    },
-
-    // removes the old stylesheet rules only once the new one has finished loading
-    removeoldLinkElements: function () {
-      var pending = 0;
-      for (var url in oldLinkElements) {
-        // if this sheet has any cssRules, delete the old link
-        try {
-          var link = currentLinkElements[url],
-              oldLink = oldLinkElements[url],
-              html = document.body.parentNode,
-              sheet = link.sheet || link.styleSheet,
-              rules = sheet.rules || sheet.cssRules;
-          if (rules.length >= 0) {
-            oldLink.parentNode.removeChild(oldLink);
-            delete oldLinkElements[url];
-            setTimeout(function () {
-              html.className = html.className.replace(/\s*livejs\-loading/gi, '');
-            }, 100);
-          }
-        } catch (e) {
-          pending++;
-        }
-        if (pending) setTimeout(Live.removeoldLinkElements, 50);
-      }
-    },
-
-    // performs a HEAD request and passes the header info to the given callback
-    getHead: function (url, callback) {
-      pendingRequests[url] = true;
-      var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XmlHttp");
-      xhr.open("HEAD", url, true);
-      xhr.onreadystatechange = function () {
-        delete pendingRequests[url];
-        if (xhr.readyState == 4 && xhr.status != 304) {
-          xhr.getAllResponseHeaders();
-          var info = {};
-          for (var h in headers) {
-            var value = xhr.getResponseHeader(h);
-            // adjust the simple Etag variant to match on its significant part
-            if (h.toLowerCase() == "etag" && value) value = value.replace(/^W\//, '');
-            if (h.toLowerCase() == "content-type" && value) value = value.replace(/^(.*?);.*?$/i, "$1");
-            info[h] = value;
-          }
-          callback(url, info);
-        }
-      }
-      xhr.send();
-    }
-  };
-
-  // start listening
-  if (document.location.protocol != "file:") {
-    if (!window.liveJsLoaded)
-      Live.heartbeat();
-
-    window.liveJsLoaded = true;
-  }
-  else if (window.console)
-    console.log("Live.js doesn't support the file protocol. It needs http.");    
-})();</script>
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Simple Document</h1>
+<h1 class="title">MyDoc</h1>
 </header>
 <nav id="TOC" role="doc-toc">
 <ul>
@@ -814,7 +581,7 @@ border-color: #4078c0;
 </ul>
 </nav>
 <h1 id="simple-static-page-generator">Simple static page generator</h1>
-<p><a href="https://github.com/onjin/simple-static-generator/blob/master/LICENSE"><img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTA4IiBoZWlnaHQ9IjIwIj48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgyPSIwIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYmJiIiBzdG9wLW9wYWNpdHk9Ii4xIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLW9wYWNpdHk9Ii4xIi8+PC9saW5lYXJHcmFkaWVudD48Y2xpcFBhdGggaWQ9ImEiPjxyZWN0IHdpZHRoPSIxMDgiIGhlaWdodD0iMjAiIHJ4PSIzIiBmaWxsPSIjZmZmIi8+PC9jbGlwUGF0aD48ZyBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGw9IiM1NTUiIGQ9Ik0wIDBoNDd2MjBIMHoiLz48cGF0aCBmaWxsPSIjMDA3ZWM2IiBkPSJNNDcgMGg2MXYyMEg0N3oiLz48cGF0aCBmaWxsPSJ1cmwoI2IpIiBkPSJNMCAwaDEwOHYyMEgweiIvPjwvZz48ZyBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iRGVqYVZ1IFNhbnMsVmVyZGFuYSxHZW5ldmEsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMTAiPiA8dGV4dCB4PSIyNDUiIHk9IjE1MCIgZmlsbD0iIzAxMDEwMSIgZmlsbC1vcGFjaXR5PSIuMyIgdHJhbnNmb3JtPSJzY2FsZSguMSkiIHRleHRMZW5ndGg9IjM3MCI+bGljZW5zZTwvdGV4dD48dGV4dCB4PSIyNDUiIHk9IjE0MCIgdHJhbnNmb3JtPSJzY2FsZSguMSkiIHRleHRMZW5ndGg9IjM3MCI+bGljZW5zZTwvdGV4dD48dGV4dCB4PSI3NjUiIHk9IjE1MCIgZmlsbD0iIzAxMDEwMSIgZmlsbC1vcGFjaXR5PSIuMyIgdHJhbnNmb3JtPSJzY2FsZSguMSkiIHRleHRMZW5ndGg9IjUxMCI+TmV3IEJTRDwvdGV4dD48dGV4dCB4PSI3NjUiIHk9IjE0MCIgdHJhbnNmb3JtPSJzY2FsZSguMSkiIHRleHRMZW5ndGg9IjUxMCI+TmV3IEJTRDwvdGV4dD48L2c+IDwvc3ZnPg==" alt="Foo" /></a></p>
+<p><a href="https://github.com/onjin/simple-static-generator/blob/master/LICENSE"><img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTA4IiBoZWlnaHQ9IjIwIj48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgyPSIwIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYmJiIiBzdG9wLW9wYWNpdHk9Ii4xIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLW9wYWNpdHk9Ii4xIi8+PC9saW5lYXJHcmFkaWVudD48Y2xpcFBhdGggaWQ9InIiPjxyZWN0IHdpZHRoPSIxMDgiIGhlaWdodD0iMjAiIHJ4PSIzIiBmaWxsPSIjZmZmIi8+PC9jbGlwUGF0aD48ZyBjbGlwLXBhdGg9InVybCgjcikiPjxyZWN0IHdpZHRoPSI0NyIgaGVpZ2h0PSIyMCIgZmlsbD0iIzU1NSIvPjxyZWN0IHg9IjQ3IiB3aWR0aD0iNjEiIGhlaWdodD0iMjAiIGZpbGw9IiMwMDdlYzYiLz48cmVjdCB3aWR0aD0iMTA4IiBoZWlnaHQ9IjIwIiBmaWxsPSJ1cmwoI3MpIi8+PC9nPjxnIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJWZXJkYW5hLEdlbmV2YSxEZWphVnUgU2FucyxzYW5zLXNlcmlmIiB0ZXh0LXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiBmb250LXNpemU9IjExMCI+PHRleHQgeD0iMjQ1IiB5PSIxNTAiIGZpbGw9IiMwMTAxMDEiIGZpbGwtb3BhY2l0eT0iLjMiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSIzNzAiPmxpY2Vuc2U8L3RleHQ+PHRleHQgeD0iMjQ1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSIzNzAiPmxpY2Vuc2U8L3RleHQ+PHRleHQgeD0iNzY1IiB5PSIxNTAiIGZpbGw9IiMwMTAxMDEiIGZpbGwtb3BhY2l0eT0iLjMiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSI1MTAiPk5ldyBCU0Q8L3RleHQ+PHRleHQgeD0iNzY1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSI1MTAiPk5ldyBCU0Q8L3RleHQ+PC9nPjwvc3ZnPg==" alt="Foo" /></a></p>
 <p><strong>Free software: BSD license</strong></p>
 <p>Generates single <code>index.html</code> from bunch of markdown files using <a href="https://pandoc.org">pandoc</a> with table of contents.</p>
 <p>Generated file is self contained so it includes required styles and scripts. You can use any pandoc output format like:</p>
@@ -826,9 +593,9 @@ border-color: #4078c0;
 </ul>
 <p>and many others. Check <a href="https://pandoc.org/index.html">https://pandoc.org/index.html</a> for available formats.</p>
 <h2 id="simple-usage">Simple usage</h2>
-<p>Just clone repository, run <code>make watch</code> and <code>make serve</code>. Then just write new <code>content/001-first.md</code> file. Make sure you have <code>pandoc</code> installed.</p>
-<pre><code>  $ git clone https://github.com/onjin/simple-static
-  $ make build
+<p>Just clone repository, run <code>mydoc watch document.md</code> and <code>mydoc serve</code>. Then just write new <code>document.md</code> file. Make sure you have <code>pandoc</code> installed.</p>
+<pre><code>  $ git clone https://github.com/onjin/simple-static-generator
+  $ ./mydoc build
   $ google-chrome output/index.html</code></pre>
 <h2 id="configuration-variables">Configuration variables</h2>
 <ul>
@@ -836,13 +603,14 @@ border-color: #4078c0;
 <li>TOC_DEPTH - default <code>2</code></li>
 <li>HIGHLIGH_STYLE - default <code>zenburn</code></li>
 <li>OUTPUT_FORMAT - default <code>html5</code></li>
-<li>OUTPUT_PATH - default `output/index.html</li>
+<li>OUTPUT_PATH - default <code>output/index.html</code></li>
 <li>PANDOC_OPTS - optional additional pandoc parameters</li>
 </ul>
 <p>You can override variables by passing them in command line:</p>
-<pre><code>$ TOC_DEPTH=1 make build
-$ TOC_DEPTH=2 OUTPUT_FORMAT=pdf OUTPUT_PATH=output/index.pdf  PANDOC_OPTS=&quot;-t latex&quot; make build
-$ OUTPUT_FORMAT=ipynb OUTPUT_PATH=output/notebook.ipynb make build</code></pre>
+<pre><code>$ TOC_DEPTH=1 ./mydoc build myfile.md
+$ OUTPUT_PATH=examples/index.html ./mydoc build README.md AUTHORS.md LICENSE
+$ TOC_DEPTH=3 OUTPUT_FORMAT=pdf OUTPUT_PATH=examples/index.pdf PANDOC_OPTS=&quot;-t latex&quot; ./mydoc build README.md AUTHORS.md LICENSE
+$ OUTPUT_FORMAT=ipynb OUTPUT_PATH=examples/index.ipynb ./mydoc build README.md AUTHORS.md LICENSE</code></pre>
 <p>or by writing them into <code>.env</code> file, for example:</p>
 <pre><code>TOC_DEPTH=3
 HIGHLIGH_STYLE=kate</code></pre>
@@ -852,8 +620,8 @@ HIGHLIGH_STYLE=kate</code></pre>
 <li>inotifywait - to observe file/directory changes - available in <code>inotify-tools</code></li>
 <li>python3 - to serve current directory through www server</li>
 </ul>
-<pre><code>  $ make watch
-  $ make serve  # in another terminal/pane
+<pre><code>  $ ./mydoc watch
+  $ ./mydoc serve  # in another terminal/panel to serve from output OUTPUT_DIR
   $ google-chrome http://localhost:8000/output/index.html</code></pre>
 <h2 id="example-static-page">Example static page</h2>
 <p>In <code>examples</code> directore there are documents generated from this README.md file:</p>

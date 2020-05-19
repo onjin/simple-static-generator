@@ -20,13 +20,13 @@ You can use any pandoc output format like:
 
 ## Simple usage
 
-Just clone repository, run `make watch` and `make serve`. Then just write new `content/001-first.md` file.
+Just clone repository, run `mydoc watch document.md` and `mydoc serve`. Then just write new `document.md` file.
 Make sure you have `pandoc` installed.
 
 
 ```
-  $ git clone https://github.com/onjin/simple-static
-  $ make build
+  $ git clone https://github.com/onjin/simple-static-generator
+  $ ./mydoc build
   $ google-chrome output/index.html
 ```
 
@@ -36,15 +36,16 @@ Make sure you have `pandoc` installed.
  * TOC_DEPTH - default `2`
  * HIGHLIGH_STYLE - default `zenburn`
  * OUTPUT_FORMAT - default `html5`
- * OUTPUT_PATH - default `output/index.html
+ * OUTPUT_PATH - default `output/index.html`
  * PANDOC_OPTS - optional additional pandoc parameters
 
 You can override variables by passing them in command line:
 
 ```
-$ TOC_DEPTH=1 make build
-$ TOC_DEPTH=2 OUTPUT_FORMAT=pdf OUTPUT_PATH=output/index.pdf  PANDOC_OPTS="-t latex" make build
-$ OUTPUT_FORMAT=ipynb OUTPUT_PATH=output/notebook.ipynb make build
+$ TOC_DEPTH=1 ./mydoc build myfile.md
+$ OUTPUT_PATH=examples/index.html ./mydoc build README.md AUTHORS.md LICENSE
+$ TOC_DEPTH=3 OUTPUT_FORMAT=pdf OUTPUT_PATH=examples/index.pdf PANDOC_OPTS="-t latex" ./mydoc build README.md AUTHORS.md LICENSE
+$ OUTPUT_FORMAT=ipynb OUTPUT_PATH=examples/index.ipynb ./mydoc build README.md AUTHORS.md LICENSE
 ```
 
 or by writing them into `.env` file, for example:
@@ -62,8 +63,8 @@ To use watch you have install additional applications:
  * python3 - to serve current directory through www server
 
 ```
-  $ make watch
-  $ make serve  # in another terminal/pane
+  $ ./mydoc watch
+  $ ./mydoc serve  # in another terminal/panel to serve from output OUTPUT_DIR
   $ google-chrome http://localhost:8000/output/index.html
 ```
 
